@@ -1,6 +1,9 @@
-# Copyright 2024 Antimetal LLC
-# SPDX-License-Identifier: MPL-2.0
-
-provider "antimetal" {
-
+terraform {
+  required_providers {
+    antimetal = {
+      source = "antimetal/antimetal"
+    }
+  }
 }
+
+provider "antimetal" {}
