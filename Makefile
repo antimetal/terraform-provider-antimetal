@@ -7,15 +7,21 @@ SHELL = /usr/bin/env bash -o pipefail
 .PHONY: all
 all: build
 
+REGISTRY ?= registry.terraform.io
+PROVIDER ?= antimetal
+VERSION ?= 0.0.1
+
 LOCALBIN ?= $(shell pwd)/bin
-BINARY_NAME ?= terraform-provider-antimetal
-VERSION ?= dev
-GOENV ?= CGO_ENABLED=0 GOBIN=$(LOCALBIN)
+BINARY_NAME ?= terraform-provider-$(PROVIDER)
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+GOENV ?= CGO_ENABLED=0 GOBIN=$(LOCALBIN) GOOS=$(GOOS) GOARCH=$(GOARCH)
+BUILD_ARGS ?= -ldflags "-X main.Version=$(VERSION)"
 TESTARGS ?=
 
 ## Tools
 GOLANGCI_LINT := github.com/golangci/golangci-lint/cmd/golangci-lint
-TERRAFORM 		:= github.com/hashicorp/terraform
+TERRAFORM     := github.com/hashicorp/terraform
 
 ##@ General
 
@@ -63,10 +69,17 @@ generate: ## Run go generate.
 
 ##@ Build
 
+$(LOCALBIN)/$(BINARY_NAME): generate
+	$(GOENV) go build $(BUILD_ARGS) -o $(LOCALBIN)/$(BINARY_NAME)
+
 .PHONY: build
-build: fmt vet ## Build terraform provider.
-	$(GOENV) go build -ldflags "-X main.Version=$(VERSION)" -o $(LOCALBIN)/$(BINARY_NAME)
+build: fmt vet $(LOCALBIN)/$(BINARY_NAME) ## Build terraform provider.
+
+.PHONY: install
+install: $(LOCALBIN)/$(BINARY_NAME) ## Install provider so that it can be used by Terraform CLI.
+	mkdir -p ~/.terraform.d/plugins/$(REGISTRY)/antimetal/$(PROVIDER)/$(VERSION)/$(GOOS)_$(GOARCH)
+	ln -sf $(LOCALBIN)/$(BINARY_NAME) ~/.terraform.d/plugins/$(REGISTRY)/antimetal/$(PROVIDER)/$(VERSION)/$(GOOS)_$(GOARCH)/$(BINARY_NAME)_v$(VERSION)
 
 .PHONY: run
 run: fmt vet ## Run terraform provider from your host.
-	$(GOENV) go run ./main.go
+	$(GOENV) go run $(BUILD_ARGS) ./main.go
