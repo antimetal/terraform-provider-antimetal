@@ -1,0 +1,33 @@
+run:
+  deadline: 5m
+  allow-parallel-runners: true
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - path: "internal/*"
+      linters:
+        - dupl
+        - lll
+linters:
+  disable-all: true
+  enable:
+    - dupl
+    - errcheck
+    - exportloopref
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - prealloc
+    - staticcheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
