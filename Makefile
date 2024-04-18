@@ -42,7 +42,11 @@ clean: ## Clean bin/ directory.
 ##@ Development
 
 .PHONY: test
-test: ## Run tests.
+test: ## Run unit tests.
+	go test ./... -v $(TESTARGS) -timeout 120m
+
+.PHONY: testacc
+testacc: ## Run Terraform provider acceptance tests.
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 .PHONY: fmt

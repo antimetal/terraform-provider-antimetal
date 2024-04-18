@@ -5,11 +5,16 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/antimetal/terraform-provider-antimetal/internal/antimetal"
+	amResource "github.com/antimetal/terraform-provider-antimetal/internal/provider/resource"
 )
 
 const (
@@ -20,8 +25,9 @@ var (
 	_ provider.Provider = &Antimetal{}
 )
 
-// AntimetalModel describes the provider data model.
-type AntimetalModel struct{}
+type AntimetalModel struct {
+	URL types.String `tfsdk:"url"`
+}
 
 // Antimetal defines the provider implementation.
 type Antimetal struct {
@@ -39,27 +45,60 @@ func New(version string) func() provider.Provider {
 	}
 }
 
-func (p *Antimetal) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *Antimetal) Metadata(ctx context.Context,
+	req provider.MetadataRequest, resp *provider.MetadataResponse) {
+
 	resp.TypeName = providerType
 	resp.Version = p.version
 }
 
-func (p *Antimetal) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
-	resp.Schema = schema.Schema{}
-}
+func (p *Antimetal) Schema(ctx context.Context,
+	req provider.SchemaRequest, resp *provider.SchemaResponse) {
 
-func (p *Antimetal) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data AntimetalModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"url": schema.StringAttribute{
+				Optional: true,
+				Description: "The default is 'antimetal.com'. This is optional and shouldn't be " +
+					"changed under normal circumstances.",
+			},
+		},
 	}
 }
 
+func (p *Antimetal) Configure(ctx context.Context,
+	req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+
+	var cfg AntimetalModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var clientOpts []antimetal.ClientOption
+
+	if !cfg.URL.IsNull() {
+		clientOpts = append(clientOpts, antimetal.WithURL(cfg.URL.ValueString()))
+	}
+
+	client, err := antimetal.NewClient(clientOpts...)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating Antimetal Client",
+			fmt.Sprintf("... details ... %s", err),
+		)
+		return
+	}
+
+	resp.DataSourceData = client
+	resp.ResourceData = client
+}
+
 func (p *Antimetal) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		amResource.NewHandshake,
+	}
 }
 
 func (p *Antimetal) DataSources(ctx context.Context) []func() datasource.DataSource {
