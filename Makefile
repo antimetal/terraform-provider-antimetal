@@ -77,7 +77,3 @@ build: fmt vet $(LOCALBIN)/$(BINARY_NAME) ## Build terraform provider.
 install: $(LOCALBIN)/$(BINARY_NAME) ## Install provider so that it can be used by Terraform CLI.
 	mkdir -p ~/.terraform.d/plugins/$(REGISTRY)/antimetal/$(PROVIDER)/$(VERSION)/$(GOOS)_$(GOARCH)
 	ln -sf $(LOCALBIN)/$(BINARY_NAME) ~/.terraform.d/plugins/$(REGISTRY)/antimetal/$(PROVIDER)/$(VERSION)/$(GOOS)_$(GOARCH)/$(BINARY_NAME)_v$(VERSION)
-
-.PHONY: run
-run: fmt vet ## Run terraform provider from your host.
-	$(GOENV) go run $(BUILD_ARGS) ./main.go
