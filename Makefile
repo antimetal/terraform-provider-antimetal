@@ -2,8 +2,6 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-.PHONY: FORCE
-
 .PHONY: all
 all: build
 
@@ -64,12 +62,13 @@ lint: ## Run golangci-lint linters.
 lint-fix: ## Run golangci-lint linters and perform fixes.
 	go run $(GOLANGCI_LINT) run --fix
 
+.PHONY: generate
 generate: ## Run go generate.
 	go generate -tags gen ./...
 
 ##@ Build
 
-$(LOCALBIN)/$(BINARY_NAME): generate
+$(LOCALBIN)/$(BINARY_NAME): main.go go.mod go.sum $(shell find internal -type f -name "*.go")
 	$(GOENV) go build $(BUILD_ARGS) -o $(LOCALBIN)/$(BINARY_NAME)
 
 .PHONY: build
