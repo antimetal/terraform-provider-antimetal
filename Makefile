@@ -19,7 +19,6 @@ TESTARGS ?=
 
 ## Tools
 GOLANGCI_LINT := github.com/golangci/golangci-lint/cmd/golangci-lint
-TERRAFORM     := github.com/hashicorp/terraform
 
 ##@ General
 
