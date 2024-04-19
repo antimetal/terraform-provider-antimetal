@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/antimetal/terraform-provider-antimetal/internal/antimetal"
+	amDataSource "github.com/antimetal/terraform-provider-antimetal/internal/provider/datasource"
 	amResource "github.com/antimetal/terraform-provider-antimetal/internal/provider/resource"
 )
 
@@ -102,5 +103,8 @@ func (p *Antimetal) Resources(ctx context.Context) []func() resource.Resource {
 }
 
 func (p *Antimetal) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		amDataSource.NewAWSIAMPolicyDocument,
+		amDataSource.NewAWSIAMAssumeRolePolicy,
+	}
 }
