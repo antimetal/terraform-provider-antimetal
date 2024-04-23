@@ -16,7 +16,7 @@ import (
 
 func NewServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/webhook/terraform", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/workspaces/webhook/terraform", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			handleErr(fmt.Errorf("couldn't read body: %w", err),

@@ -64,7 +64,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 }
 
 func (c *Client) Handshake(req HandshakeRequest) error {
-	const handshakePath = "/webhook/terraform"
+	const handshakePath = "/workspaces/webhook/terraform"
 
 	_, err := c.post(handshakePath, req)
 	return err
