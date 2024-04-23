@@ -7,6 +7,10 @@ terraform {
     aws = {
       source = "hashicorp/aws"
     }
+
+    random = {
+      source = "hashicorp/random"
+    }
   }
 }
 
@@ -16,7 +20,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-data "random_uuid" "external_id" {}
+resource "random_uuid" "external_id" {}
 
 resource "antimetal_handshake" "this" {
   // Visit https://docs.antimetal.com/onboarding/overview to receive handshake_id
@@ -32,7 +36,7 @@ data "antimetal_aws_iam_assume_role_policy" "this" {
 resource "aws_iam_role" "test_role" {
   name = "test_role"
 
-  assume_role_policy  = antimetal_aws_iam_assume_role_policy.this.json
+  assume_role_policy  = data.antimetal_aws_iam_assume_role_policy.this.json
   managed_policy_arns = [aws_iam_policy.antimetal_billing_policy.arn]
 
   tags = {
