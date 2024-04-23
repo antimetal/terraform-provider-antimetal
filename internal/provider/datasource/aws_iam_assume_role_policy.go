@@ -74,7 +74,7 @@ func (d *AWSIAMAssumeRolePolicy) Read(ctx context.Context,
 		Statements: []iam.PolicyStatement{
 			{
 				Effect:  "Allow",
-				Actions: "sts.AssumeRole",
+				Actions: "sts:AssumeRole",
 				Principals: iam.PolicyStatementPrincipal{
 					"AWS": antimetalIAMPrincipal,
 				},
