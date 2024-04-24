@@ -7,18 +7,32 @@ all: build
 
 REGISTRY ?= registry.terraform.io
 PROVIDER ?= antimetal
+PROJECT_NAME ?= terraform-provider-$(PROVIDER)
 VERSION ?= 0.0.1
+BINARY_NAME ?= $(PROJECT_NAME)_v$(VERSION)
 
-LOCALBIN ?= $(shell pwd)/bin
-BINARY_NAME ?= terraform-provider-$(PROVIDER)
+TOOLSBIN ?= $(shell pwd)/tools/bin
+DISTBIN ?= $(shell pwd)/bin
+
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
-GOENV ?= CGO_ENABLED=0 GOBIN=$(LOCALBIN) GOOS=$(GOOS) GOARCH=$(GOARCH)
-BUILD_ARGS ?= -ldflags "-X main.Version=$(VERSION)"
+ifeq ($(GOARCH),amd64)
+GOARCHFLAGS ?= _$(shell go env GOAMD64)
+else ifeq ($(GOARCH),arm)
+GOARCHFLAGS ?= _$(shell go env GOARM)
+else
+GOARCHFLAGS ?=
+endif
+
+LOCALPLUGINDIR ?= ~/.terraform.d/plugins/$(REGISTRY)/antimetal/$(PROVIDER)/$(VERSION)/$(GOOS)_$(GOARCH)
+
 TESTARGS ?=
 
 ## Tools
-GOLANGCI_LINT := github.com/golangci/golangci-lint/cmd/golangci-lint
+GOLANGCI_LINT := go run github.com/golangci/golangci-lint/cmd/golangci-lint
+
+GORELEASER         := $(TOOLSBIN)/goreleaser
+GORELEASER_VERSION := v1.25.1
 
 ##@ General
 
@@ -36,8 +50,9 @@ GOLANGCI_LINT := github.com/golangci/golangci-lint/cmd/golangci-lint
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-clean: ## Clean bin/ directory.
-	rm -rf $(LOCALBIN)
+clean: ## Clean bin/ directories.
+	rm -rf $(DISTBIN)
+	rm -rf $(TOOLSBIN)
 
 ##@ Development
 
@@ -59,11 +74,11 @@ vet: ## Run go vet against code.
 
 .PHONY: lint
 lint: ## Run golangci-lint linters.
-	go run $(GOLANGCI_LINT) run
+	$(GOLANGCI_LINT) run
 
 .PHONY: lint-fix
 lint-fix: ## Run golangci-lint linters and perform fixes.
-	go run $(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) run --fix
 
 .PHONY: generate
 generate: ## Run go generate.
@@ -71,13 +86,47 @@ generate: ## Run go generate.
 
 ##@ Build
 
-$(LOCALBIN)/$(BINARY_NAME): main.go go.mod go.sum $(shell find internal -type f -name "*.go")
-	$(GOENV) go build $(BUILD_ARGS) -o $(LOCALBIN)/$(BINARY_NAME)
-
 .PHONY: build
-build: fmt vet $(LOCALBIN)/$(BINARY_NAME) ## Build terraform provider.
+build: goreleaser fmt vet ## Build terraform provider using GoReleaser.
+	$(GORELEASER) build --snapshot --clean --single-target
 
 .PHONY: install
-install: $(LOCALBIN)/$(BINARY_NAME) ## Install provider so that it can be used by Terraform CLI.
-	mkdir -p ~/.terraform.d/plugins/$(REGISTRY)/antimetal/$(PROVIDER)/$(VERSION)/$(GOOS)_$(GOARCH)
-	ln -sf $(LOCALBIN)/$(BINARY_NAME) ~/.terraform.d/plugins/$(REGISTRY)/antimetal/$(PROVIDER)/$(VERSION)/$(GOOS)_$(GOARCH)/$(BINARY_NAME)_v$(VERSION)
+install: build ## Install provider so that it can be used by Terraform CLI.
+	@set -e; { \
+		echo "installing provider in $(LOCALPLUGINDIR)" ;\
+		mkdir -p $(LOCALPLUGINDIR) ;\
+		cp -f $(DISTBIN)/$(PROJECT_NAME)_$(GOOS)_$(GOARCH)$(GOARCHFLAGS)/$(BINARY_NAME) \
+			$(LOCALPLUGINDIR)/$(BINARY_NAME) ;\
+	}
+
+.PHONY: uninstall
+uninstall: ## Uninstall provider.
+	rm -f $(LOCALPLUGINDIR)/$(BINARY_NAME)
+
+##@ Tools
+
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# $1 - target path with name of installed binary
+# $2 - package url which can be installed
+# $3 - specific version of package
+define go-install-tool
+@set -e; { \
+	binary=$(1)@$(3) ;\
+	if [ ! -f $${binary} ]; then \
+		package=$(2)@$(3) ;\
+		echo "Downloading $${package}" ;\
+		GOBIN=$$(dirname $(1)) go install $${package} ;\
+		mv $(1) $(1)@$(3) ;\
+	fi ;\
+}
+endef
+
+.PHONY: tools
+tools: goreleaser ## Download all tools if neccessary.
+
+.PHONY: goreleaser
+goreleaser: $(GORELEASER) ## Download goreleaser locally if neccessary.
+$(GORELEASER): $(GORELEASER)@$(GORELEASER_VERSION)
+	@ln -sf $< $@
+$(GORELEASER)@$(GORELEASER_VERSION):
+	$(call go-install-tool,$(GORELEASER),github.com/goreleaser/goreleaser,$(GORELEASER_VERSION))
