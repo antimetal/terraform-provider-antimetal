@@ -6,6 +6,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -23,8 +24,9 @@ const (
 )
 
 var (
-	_ resource.Resource              = &handshake{}
-	_ resource.ResourceWithConfigure = &handshake{}
+	_ resource.Resource                = &handshake{}
+	_ resource.ResourceWithConfigure   = &handshake{}
+	_ resource.ResourceWithImportState = &handshake{}
 )
 
 type handshakeModel struct {
@@ -139,6 +141,25 @@ func (r *handshake) Delete(ctx context.Context, req resource.DeleteRequest, resp
 	)
 
 	addErrToDiagnostics(&resp.Diagnostics, err, operationDelete)
+}
+
+func (r *handshake) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	s := strings.Split(req.ID, ";")
+	if len(s) != 3 {
+		resp.Diagnostics.AddError(
+			"Error importing Handshake resource", "id must be of the format <handshake_id>;<external_id>;<role_arn>",
+		)
+		return
+	}
+	handshakeID, externalID, roleARN := s[0], s[1], s[2]
+
+	state := &handshakeModel{
+		HandshakeID: types.StringValue(handshakeID),
+		ExternalID:  types.StringValue(externalID),
+		RoleARN:     types.StringValue(roleARN),
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func convertToHandshake(data *handshakeModel, action antimetal.HandshakeAction) antimetal.HandshakeRequest {
