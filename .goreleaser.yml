@@ -8,7 +8,7 @@ builds:
   flags:
     - -trimpath
   ldflags:
-    - '-s -w -X main.Version={{ .Env.VERSION }}'
+    - '-s -w -X main.Version={{ if .IsSnapshot  }}0.0.1{{ else }}{{ .Version }}{{ end }}'
   goos:
     - freebsd
     - windows
@@ -22,15 +22,15 @@ builds:
   ignore:
     - goos: darwin
       goarch: '386'
-  binary: '{{ .ProjectName }}_v{{ .Env.VERSION }}'
+  binary: '{{ .ProjectName }}_v{{ if .IsSnapshot  }}0.0.1{{ else }}{{ .Version }}{{ end }}'
 archives:
 - format: zip
-  name_template: '{{ .ProjectName }}_{{ .Env.VERSION }}_{{ .Os }}_{{ .Arch }}'
+  name_template: '{{ .ProjectName }}_{{ if .IsSnapshot  }}0.0.1{{ else }}{{ .Version }}{{ end }}_{{ .Os }}_{{ .Arch }}'
 checksum:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
-      name_template: '{{ .ProjectName }}_{{ .Env.VERSION }}_manifest.json'
-  name_template: '{{ .ProjectName }}_{{ .Env.VERSION }}_SHA256SUMS'
+      name_template: '{{ .ProjectName }}_{{ if .IsSnapshot  }}0.0.1{{ else }}{{ .Version }}{{ end }}_manifest.json'
+  name_template: '{{ .ProjectName }}_{{ if .IsSnapshot  }}0.0.1{{ else }}{{ .Version }}{{ end }}_SHA256SUMS'
   algorithm: sha256
 signs:
   - artifacts: checksum
@@ -45,6 +45,6 @@ signs:
 release:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
-      name_template: '{{ .ProjectName }}_{{ .Env.VERSION }}_manifest.json'
+      name_template: '{{ .ProjectName }}_{{ if .IsSnapshot  }}0.0.1{{ else }}{{ .Version }}{{ end }}_manifest.json'
 changelog:
   skip: true
