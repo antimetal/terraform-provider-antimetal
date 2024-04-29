@@ -6,6 +6,7 @@ package datasource
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -76,11 +77,11 @@ func (d *AWSIAMAssumeRolePolicy) Read(ctx context.Context,
 				Effect:  "Allow",
 				Actions: "sts:AssumeRole",
 				Principals: iam.PolicyStatementPrincipal{
-					"AWS": antimetalIAMPrincipal,
+					"AWS": fmt.Sprintf("arn:aws:iam::%s:root", antimetalIAMPrincipal),
 				},
 				Conditions: iam.PolicyStatementCondition{
 					"StringEquals": map[string]string{
-						"sts:ExternalID": data.ExternalID.ValueString(),
+						"sts:ExternalId": data.ExternalID.ValueString(),
 					},
 				},
 			},
