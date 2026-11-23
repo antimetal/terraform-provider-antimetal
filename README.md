@@ -1,5 +1,9 @@
 # terraform-provider-antimetal
 
+> [!WARNING]
+> This repository is archived and is no longer maintained.
+> The code and documentation are retained for historical reference.
+
 The Antimetal provider lets you connect your AWS account to Antimetal using Terraform.
 This is done by creating a cross-account IAM role in your AWS account that Antimetal can assume to
 access your billing data.
@@ -8,8 +12,6 @@ Visit https://antimetal.com/ for more information.
 
 See the documentation in the Terraform registry for the most up-to-date information
 and latest release.
-
-This provider is maintained by Antimetal.
 
 ## Requirements
 - Bash
